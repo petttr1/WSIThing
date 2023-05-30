@@ -1,0 +1,43 @@
+# check your version: https://docs.docker.com/compose/compose-file/
+version: "3.9"
+
+
+services:
+# first container
+    backend:
+        # look for dockerfile and build the container
+        build: ./backend
+        ports:
+          - '5000:5000'
+        container_name:  backend
+        restart: always
+        # set enviornemt variables
+        environment: 
+            FLASK_DEBUG: 1
+            FLASK_ENV: development
+            FLASK_APP: api.py
+        #  mount the volumes so we can change code and hot reload
+        volumes:
+            - './backend:/backend'
+        #  expose port on the container, only to other containers
+        expose:
+            - 5000
+        entrypoint:
+          - flask
+          - run
+          - --host=0.0.0.0
+
+    ui:
+        build: ./frontend
+        container_name: frontend
+        restart: always
+        expose:
+            - 80
+    nginx:
+        build: ./nginx
+        container_name: nginx
+        restart: always
+        # port allows the host machine to link to container
+        # pass 80 from host machine to 80 of the image filesystem
+        ports:
+            - "80:80"
