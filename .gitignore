@@ -1,3 +1,6 @@
+backend/uploaded_files
+backend/demo_slides
+
 # Created by https://www.toptal.com/developers/gitignore/api/vuejs,python,flask
 # Edit at https://www.toptal.com/developers/gitignore?templates=vuejs,python,flask
 
