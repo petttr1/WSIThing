@@ -1,4 +1,4 @@
-FROM ubuntu:latest
+FROM ubuntu:focal
 
 ########################################
 #
@@ -17,7 +17,7 @@ ENV TZ=Europe/Bratislava
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 RUN echo 'deb http://old-releases.ubuntu.com/ubuntu/ yakkety universe' >> /etc/apt/sources.list;
-RUN apt-get update -qq && apt-get install -y \
+RUN apt-get update -qq && apt-get install -y -m \
     curl \
     wget \
     git \
@@ -29,6 +29,7 @@ RUN apt-get update -qq && apt-get install -y \
     cmake \
     pkg-config \
     zlib1g-dev \
+    ffmpeg \
     libopenjpeg-dev \
     libglib2.0-dev \
     libcairo2-dev \
@@ -39,6 +40,7 @@ RUN apt-get update -qq && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
     libjasper-dev \
+    libgeos-dev \
     libgtk2.0-dev \
     libsm6 \
     libtool \
@@ -65,8 +67,10 @@ WORKDIR /usr/local/
 RUN rm -rf /usr/local/src
 # =================================
 
-RUN pip install openslide-python
-RUN pip install uwsgi
+RUN pip3 install --upgrade pip
+
+RUN pip3 install openslide-python
+RUN pip3 install uwsgi
 
 # set the working directory of the image filesystem 
 WORKDIR /backend
@@ -75,7 +79,7 @@ WORKDIR /backend
 ADD . /backend
 
 # Install the python dependencies
-RUN pip install -r requirements.txt
+RUN pip3 install -r requirements.txt
 
 # start the uWSGI
 # CMD ["waitress-serve", "--call", "wsgi:app"]

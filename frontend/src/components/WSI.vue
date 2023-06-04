@@ -11,6 +11,7 @@
 import OpenSeadragon from "openseadragon";
 import "svg-overlay";
 import * as d3 from "d3";
+
 export default {
   name: "WSI",
   components: {},
@@ -24,13 +25,24 @@ export default {
       viewer: null,
       overlay: null,
       activeOverlays: {},
-      palette: ["red", "blue", "green", "cyan", "fuchsia", "aqua", "yellow"],
+      palette: [
+        "#FF0000",
+        "#0000FF",
+        "#00FF00",
+        "#00FFFF",
+        "#FF00FF",
+        "#b22222",
+        "#FFFF00",
+      ],
     };
   },
   mounted() {
     this.loadSeaDragon();
     this.$root.$on("changeOpacity", this.changeOverlayOpacity);
     this.$root.$on("removeOverlay", this.removeOverlay);
+    this.$root.$on("changeColor", this.changeClassColor);
+    this.$root.$on("changeVisibility", this.changeClassVisible);
+    this.$root.$on("resetColors", this.resetColors);
   },
   watch: {
     imgData: {
@@ -43,7 +55,22 @@ export default {
     overlays: {
       deep: true,
       handler(newVal) {
-        const colors = this.getColors(newVal.classes);
+        let colors = this.$store.getters.colors(newVal.id);
+        let visible = this.$store.getters.classesVisible(newVal.id);
+        if (!colors || !colors.length) {
+          colors = this.getColors(newVal.classes);
+          this.$store.dispatch("storeColors", {
+            id: newVal.id,
+            colors,
+          });
+        }
+        if (!visible || !visible.length) {
+          visible = this.getVis(newVal.classes);
+          this.$store.dispatch("storeVisibility", {
+            id: newVal.id,
+            visible,
+          });
+        }
         // eslint-disable-next-line
         console.log("NewVal", newVal, colors);
         this.addOverlay(newVal.objects, newVal.id, colors);
@@ -51,13 +78,19 @@ export default {
     },
   },
   methods: {
+    getVis(classes) {
+      let c = {};
+      for (let i = 0; i < classes.length; i++) {
+        c[classes[i]] = true;
+      }
+      return c;
+    },
     getColors(classes) {
-      var c = {};
+      let c = {};
       for (let i = 0; i < classes.length; i++) {
         c[classes[i]] = this.palette[i];
       }
       return c;
-      // return this.palette.slice(0, number - 1);
     },
     loadSeaDragon() {
       this.viewer = OpenSeadragon({
@@ -79,19 +112,20 @@ export default {
       return finalString;
     },
     addOverlay(polys, id, colors) {
-      // d3.select(this.overlay.node()).selectAll("*").remove();
       if (typeof this.viewer.world.getItemAt(0) !== "undefined") {
+        const opacity = this.$store.getters.maskOpacity;
         polys.forEach((poly) => {
+          const className = poly.class.toLowerCase().replaceAll(" ", "-");
           const polyString = this.makePolyString(poly.points.x, poly.points.y);
           // eslint-disable-next-line
-          console.log(poly.class);
+          console.log('class', poly.class, colors[poly.class]);
           d3.select(this.overlay.node())
             .append("polygon")
             .attr("points", polyString)
             .style("fill", colors[poly.class])
-            .style("opacity", 0.5)
+            .style("opacity", opacity)
             .attr("id", id)
-            .attr("class", poly.class);
+            .attr("class", className);
         });
       } else {
         setTimeout(this.makePolygons, 1000, polys, id);
@@ -102,12 +136,33 @@ export default {
         .selectAll("#" + id)
         .remove();
     },
-    changeOverlayOpacity(overlayId, opacity) {
-      // eslint-disable-next-line
-      console.log(overlayId, opacity);
+    changeOverlayOpacity(overlayId) {
+      const opacity = this.$store.getters.maskOpacity;
       d3.select(this.overlay.node())
         .selectAll("#" + overlayId)
         .style("opacity", opacity);
+    },
+    changeClassColor(overlayId, className) {
+      const color = this.$store.getters.colors(overlayId)[className];
+      d3.select(this.overlay.node())
+        .selectAll(`.${className.toLowerCase().replaceAll(" ", "-")}`)
+        .style("fill", color);
+    },
+    changeClassVisible(overlayId, className) {
+      const visibility =
+        this.$store.getters.classesVisible(overlayId)[className];
+      console.log("toggle WIS", visibility, className);
+      d3.select(this.overlay.node())
+        .selectAll(`.${className.toLowerCase().replaceAll(" ", "-")}`)
+        .attr("hidden", visibility ? null : true);
+    },
+    resetColors(id) {
+      const classes = Object.keys(this.$store.getters.colors(id));
+      const colors = this.getColors(classes);
+      this.$store.dispatch("storeColors", { id, colors });
+      classes.forEach((analysisClass) => {
+        this.changeClassColor(id, analysisClass);
+      });
     },
   },
   created() {},

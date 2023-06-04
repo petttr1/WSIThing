@@ -29,7 +29,7 @@ STORAGE = create_storage()
 
 @app.route('/')
 def index():
-    return {'maeesage': 'Hello World!'}
+    return {'message': 'Hello World!'}
 
 
 @app.route('/<slug>.dzi')

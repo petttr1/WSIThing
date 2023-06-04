@@ -4,27 +4,29 @@
       <b-navbar-brand>WSI Tools</b-navbar-brand>
       <b-button v-b-toggle.sidebar-1>New WSI</b-button>
       <b-navbar-nav class="ml-auto">
-        <b-button v-b-toggle.sidebar-2>WSI Options</b-button>
+        <b-button @click="toggleControls"
+          >{{ shouldShowControls ? "Hide" : "Show" }} Controls
+        </b-button>
       </b-navbar-nav>
     </b-navbar>
     <router-view />
     {{ message }}
-    <b-sidebar id="sidebar-1" title="File Upload" backdrop shadow width="500px">
+    <b-sidebar id="sidebar-1" backdrop shadow title="File Upload" width="500px">
       <b-form style="width: 70%; margin: auto">
         <b-form-group label="WSI File" label-cols-sm="2" label-size="sm">
           <b-form-file
-            v-model="file"
             id="file-large"
             ref="file-input"
+            v-model="file"
             size="sm"
           ></b-form-file>
         </b-form-group>
 
         <b-form-group label="WSI Annotation" label-cols-sm="2" label-size="sm">
           <b-form-file
-            v-model="annot"
             id="file-annot"
             ref="file-input"
+            v-model="annot"
             size="sm"
           ></b-form-file>
         </b-form-group>
@@ -35,47 +37,39 @@
           label-size="sm"
         >
           <b-form-file
-            v-model="analysisExport"
             id="file-export"
             ref="file-input"
+            v-model="analysisExport"
             size="sm"
           ></b-form-file>
         </b-form-group>
 
-        <b-button v-b-toggle.sidebar-1 v-on:click="upload" variant="success"
-          >Submit</b-button
-        >
+        <b-button v-b-toggle.sidebar-1 variant="success" v-on:click="upload"
+          >Submit
+        </b-button>
       </b-form>
       <h2 class="mt-2">Demo Slides</h2>
       <b-button
         v-for="slide in demo_slides"
         :key="slide"
         @click="loadDemoSlide(slide)"
-        >{{ slide }}</b-button
-      >
+        >{{ slide }}
+      </b-button>
     </b-sidebar>
-
-    <b-sidebar id="sidebar-2" title="WSI Options" shadow right width="500px">
-      <!-- <OverlayPicker analysisName="analysis1"></OverlayPicker> -->
-      <div id="Analyses">
-        <OverlayPicker analysisName="default" :storageKey="storageKey">
-        </OverlayPicker>
-        <OverlayPicker
-          v-for="option in analysesOpts"
-          :key="option.value"
-          :analysisName="option.value"
-          :storageKey="storageKey"
-        ></OverlayPicker>
-      </div>
-    </b-sidebar>
+    <ControlsDropdown
+      v-if="shouldShowControls"
+      :analysesOpts="analysesOpts"
+      @close="toggleControls"
+    />
   </div>
 </template>
 
 <script>
-import OverlayPicker from "@/components/OverlayPicker.vue";
+import ControlsDropdown from "./components/ControlsDropdown.vue";
+
 export default {
   components: {
-    OverlayPicker,
+    ControlsDropdown,
   },
   data() {
     return {
@@ -86,6 +80,7 @@ export default {
       analysesOpts: [],
       storageKey: "",
       demo_slides: [],
+      shouldShowControls: false,
     };
   },
   methods: {
@@ -99,7 +94,7 @@ export default {
         })
         .then((res) => {
           // eslint-disable-next-line
-          console.log(res);
+            console.log(res);
           this.demo_slides = res.data.slides;
         });
     },
@@ -113,7 +108,7 @@ export default {
         })
         .then((res) => {
           // eslint-disable-next-line
-          console.log(res);
+            console.log(res);
         });
     },
     uploadWSI() {
@@ -131,7 +126,7 @@ export default {
         })
         .then((res) => {
           // eslint-disable-next-line
-          console.log(res);
+            console.log(res);
         });
     },
     upload(e) {
@@ -146,6 +141,9 @@ export default {
     connectToSocket() {
       this.$socket.emit("connect");
     },
+    toggleControls() {
+      this.shouldShowControls = !this.shouldShowControls;
+    },
   },
   mounted() {
     this.connectToSocket();
@@ -157,15 +155,12 @@ export default {
     },
     annotationProcessed(data) {
       const Annot = data.annot;
-      // eslint-disable-next-line
-      console.log(JSON.stringify(Annot));
       this.$root.$emit("NewOverlay", Annot);
     },
     wsiProcessed(data) {
       const WSIForm = data.wsi;
-      // eslint-disable-next-line
-      console.log(JSON.stringify(WSIForm));
       this.storageKey = WSIForm.Image.storageKey;
+      this.$store.dispatch("updateStorageKey", this.storageKey);
       this.$root.$emit("NewWSI", WSIForm);
     },
     analyzerCreated(data) {
@@ -178,8 +173,6 @@ export default {
       }
     },
     newOverlayLoaded(data) {
-      // eslint-disable-next-line
-      console.log(JSON.stringify(data.overlay));
       this.$root.$emit("NewOverlay", data.overlay);
     },
   },

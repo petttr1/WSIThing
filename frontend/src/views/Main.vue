@@ -11,6 +11,7 @@
 
 <script>
 import WSI from "@/components/WSI.vue";
+
 export default {
   name: "Home",
   components: {
@@ -29,14 +30,10 @@ export default {
   },
   methods: {
     loadNewWSI(data) {
-      //eslint-disable-next-line
-      console.log("loading wsi", data);
       this.WSIParams = data;
       this.showWSI = true;
     },
     loadNewOverlay(data) {
-      //eslint-disable-next-line
-      console.log("loading annot", data);
       this.WSIOverlays = data;
     },
   },

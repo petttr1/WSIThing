@@ -1,7 +1,6 @@
 # build stage
-FROM node:lts-alpine as build-stage
-RUN apk update && apk upgrade && \
-    apk add --no-cache bash git openssh
+FROM node:16 as build-stage
+RUN apt-get clean && apt-get update -qq && apt-get install -y bash git openssh-server
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
