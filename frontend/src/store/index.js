@@ -27,10 +27,16 @@ export default new Vuex.Store({
       return state.viewOptions.maskOpacity;
     },
     colors: (state) => (id) => {
-      return state.analysisOptions[id]?.colors ?? [];
+      return state.analysisOptions[id]?.colors ?? null;
     },
     classesVisible: (state) => (id) => {
-      return state.analysisOptions[id]?.visible ?? [];
+      return state.analysisOptions[id]?.visible ?? null;
+    },
+    classesWeights: (state) => (id) => {
+      return state.analysisOptions[id]?.weights ?? null;
+    },
+    classesOpacities: (state) => (id) => {
+      return state.analysisOptions[id]?.opacities ?? null;
     },
   },
   mutations: {
@@ -54,6 +60,20 @@ export default new Vuex.Store({
         visible: payload.visible,
       });
     },
+    storeWeights(state, payload) {
+      const stored = state.analysisOptions[payload.id] ?? {};
+      Vue.set(state.analysisOptions, payload.id, {
+        ...stored,
+        weights: payload.weights,
+      });
+    },
+    storeOpacities(state, payload) {
+      const stored = state.analysisOptions[payload.id] ?? {};
+      Vue.set(state.analysisOptions, payload.id, {
+        ...stored,
+        opacities: payload.opacities,
+      });
+    },
   },
   actions: {
     updateOptions(context, value) {
@@ -67,6 +87,12 @@ export default new Vuex.Store({
     },
     storeVisibility(context, payload) {
       context.commit("storeVisibility", payload);
+    },
+    storeWeights(context, payload) {
+      context.commit("storeWeights", payload);
+    },
+    storeOpacities(context, payload) {
+      context.commit("storeOpacities", payload);
     },
   },
   modules: {},

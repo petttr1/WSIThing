@@ -83,7 +83,7 @@ def simple_image(slug):
 
 @app.route('/upload_wsi', methods=['POST'])
 def upload_file():
-    print(' * received form with', list(request.form.items()))
+    # print(' * received form with', list(request.form.items()))
     socketio.emit('statusMessage', 'File Received on the Backend')
     # check if the post request has the file part
     files = request.files.getlist('files')
@@ -106,7 +106,7 @@ def upload_file():
         # process the actual WSI, using the annotation when creating the Analyzer
         filename = secure_filename(wsi.filename).lower()
         wsi.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        print(' * file uploaded, creating FE WSI Analyzer', filename)
+        # print(' * file uploaded, creating FE WSI Analyzer', filename)
         socketio.emit('statusMessage', 'File Uploaded, Creating FE Analyzer')
         analyzer = create_fe_analyzer(os.path.join(
             app.config['UPLOAD_FOLDER'], filename), filename, annot_parser)
@@ -136,7 +136,7 @@ def upload_file():
         dump_filename = secure_filename(dump_file.filename).lower()
         dump_file.save(os.path.join(
             app.config['UPLOAD_FOLDER'], dump_filename))
-        print(' * dump file uploaded, creating WSI Analyzer', dump_filename)
+        # print(' * dump file uploaded, creating WSI Analyzer', dump_filename)
         socketio.emit('statusMessage', 'Creating an Analyzer {}'.format(
             os.path.join(app.config['UPLOAD_FOLDER'], dump_filename)))
         # TODO: Hack af
@@ -164,7 +164,7 @@ def get_all_demo_slide_names():
 
 @app.route('/demo_slide/<string:name>', methods=['GET'])
 def load_demo_slide(name):
-    print(' * loading demo slide', name)
+    # print(' * loading demo slide', name)
     socketio.emit('statusMessage', 'Request on the Backend')
     # TODO: hard-coded xml annot (probably ok?)
     polygons, annot_parser, classes = create_annotation(
@@ -225,7 +225,7 @@ def create_analyzer(storage_key):
         if dump.filename.split('.')[-1].lower() == 'pickle':
             filename = secure_filename(dump.filename).lower()
             dump.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            print(' * file uploaded, creating WSI Analyzer', filename)
+            # print(' * file uploaded, creating WSI Analyzer', filename)
             # TODO: Hack af
             with open(os.path.join(app.config['UPLOAD_FOLDER'], filename), 'rb') as handle:
                 b = pickle.load(handle)
@@ -239,18 +239,24 @@ def download_file(name):
     return send_from_directory(app.config["UPLOAD_FOLDER"], name)
 
 
-@app.route('/get_analysis/<string:storage_key>/<string:analysis_name>', methods=['GET'])
+@app.route('/get_analysis/<string:storage_key>/<string:analysis_name>', methods=['POST'])
 def get_analysis(storage_key, analysis_name):
-    threshold = request.args.get('threshold', default=0.5, type=float)
+    threshold = request.form.get('threshold', default=0.5, type=float)
+    weights = request.form.getlist('weights')
+    if len(weights) == 0:
+        weights = None
+    else:
+        weights = weights[0].strip('[').strip(']').split(',')
     try:
         overlay = STORAGE.get(storage_key).get_analysis(
-            analysis_name, threshold)
+            analysis_name, threshold, weights)
         classes = STORAGE.get(storage_key).get_classes(analysis_name)
         socketio.emit('newOverlayLoaded', {
             'overlay': {
                 'objects': overlay,
                 'classes': classes,
-                'id': analysis_name
+                'id': analysis_name,
+                'weights': weights
             }
         })
         return {'result': 'success'}
@@ -261,7 +267,7 @@ def get_analysis(storage_key, analysis_name):
 
 @socketio.on('connect')
 def frontend_connect():
-    print('FE Connected')
+    # print('FE Connected')
     emit('statusMessage', 'BE Connected, Please Upload a WSI')
 
 

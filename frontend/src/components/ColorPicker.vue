@@ -24,6 +24,16 @@
       />
     </div>
     <div class="color-picker-bottom">
+      <label>Mask Opacity ({{ classOpacity }})</label>
+      <b-form-input
+        :value="classOpacity"
+        class="mb-1"
+        max="1"
+        min="0"
+        step="0.1"
+        type="range"
+        @input="changeOpacity"
+      ></b-form-input>
       <label>Class Weight ({{ classWeight }})</label>
       <b-form-input
         :value="classWeight"
@@ -41,7 +51,7 @@
 export default {
   name: "ColorPicker",
   components: {},
-  props: ["color", "visible", "classWeight"],
+  props: ["color", "visible", "classWeight", "classOpacity"],
   data() {
     return {
       picking: false,
@@ -69,7 +79,17 @@ export default {
     openPicker() {
       this.picking = true;
     },
-    changeWeight() {},
+    changeWeight(value) {
+      const payload = {};
+      payload[this.color.name] = parseFloat(value);
+      this.$emit("update:weight", payload);
+    },
+    changeOpacity(value) {
+      const payload = {};
+      payload[this.color.name] = value;
+      this.$emit("update:opacity", payload);
+      console.log("update opacity", payload);
+    },
   },
 };
 </script>

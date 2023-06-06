@@ -2,7 +2,7 @@
   <div class="WSI">
     <div
       id="openseadragon"
-      style="width: 95%; height: 700px; border: 1px solid red; margin: auto"
+      style="width: 95%; height: 700px; margin: auto"
     ></div>
   </div>
 </template>
@@ -57,22 +57,40 @@ export default {
       handler(newVal) {
         let colors = this.$store.getters.colors(newVal.id);
         let visible = this.$store.getters.classesVisible(newVal.id);
-        if (!colors || !colors.length) {
+        let opacities = this.$store.getters.classesOpacities(newVal.id);
+        let weights = this.$store.getters.classesWeights(newVal.id);
+        // eslint-disable-next-line
+        console.log("NewVal", {...newVal}, {...colors}, {...visible}, {...opacities}, {...weights});
+        if (!colors) {
           colors = this.getColors(newVal.classes);
           this.$store.dispatch("storeColors", {
             id: newVal.id,
             colors,
           });
         }
-        if (!visible || !visible.length) {
+        if (!visible) {
           visible = this.getVis(newVal.classes);
           this.$store.dispatch("storeVisibility", {
             id: newVal.id,
             visible,
           });
         }
+        if (!opacities) {
+          opacities = this.getOpacities(newVal.classes);
+          this.$store.dispatch("storeOpacities", {
+            id: newVal.id,
+            opacities,
+          });
+        }
+        if (!weights) {
+          weights = this.getWeights(newVal.classes);
+          this.$store.dispatch("storeWeights", {
+            id: newVal.id,
+            weights,
+          });
+        }
         // eslint-disable-next-line
-        console.log("NewVal", newVal, colors);
+        console.log("NewVal", {...newVal}, {...colors}, {...visible}, {...opacities}, {...weights});
         this.addOverlay(newVal.objects, newVal.id, colors);
       },
     },
@@ -82,6 +100,20 @@ export default {
       let c = {};
       for (let i = 0; i < classes.length; i++) {
         c[classes[i]] = true;
+      }
+      return c;
+    },
+    getOpacities(classes) {
+      let c = {};
+      for (let i = 0; i < classes.length; i++) {
+        c[classes[i]] = 0.5;
+      }
+      return c;
+    },
+    getWeights(classes) {
+      let c = {};
+      for (let i = 0; i < classes.length; i++) {
+        c[classes[i]] = 1;
       }
       return c;
     },
@@ -113,6 +145,7 @@ export default {
     },
     addOverlay(polys, id, colors) {
       if (typeof this.viewer.world.getItemAt(0) !== "undefined") {
+        this.removeOverlay(id);
         const opacity = this.$store.getters.maskOpacity;
         polys.forEach((poly) => {
           const className = poly.class.toLowerCase().replaceAll(" ", "-");
@@ -136,10 +169,11 @@ export default {
         .selectAll("#" + id)
         .remove();
     },
-    changeOverlayOpacity(overlayId) {
-      const opacity = this.$store.getters.maskOpacity;
+    changeOverlayOpacity(overlayId, className) {
+      const opacity =
+        this.$store.getters.classesOpacities(overlayId)[className];
       d3.select(this.overlay.node())
-        .selectAll("#" + overlayId)
+        .selectAll(`.${className.toLowerCase().replaceAll(" ", "-")}`)
         .style("opacity", opacity);
     },
     changeClassColor(overlayId, className) {
@@ -151,7 +185,7 @@ export default {
     changeClassVisible(overlayId, className) {
       const visibility =
         this.$store.getters.classesVisible(overlayId)[className];
-      console.log("toggle WIS", visibility, className);
+      console.log("toggle WSI", visibility, className);
       d3.select(this.overlay.node())
         .selectAll(`.${className.toLowerCase().replaceAll(" ", "-")}`)
         .attr("hidden", visibility ? null : true);

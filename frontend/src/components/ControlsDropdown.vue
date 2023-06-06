@@ -11,16 +11,6 @@
       @input="onSelected"
     ></b-form-select>
     <div v-if="selected" class="controls-dropdown-content">
-      <label>Mask Opacity ({{ maskOpacity }})</label>
-      <b-form-input
-        :value="maskOpacity"
-        class="mb-4"
-        max="1"
-        min="0"
-        step="0.1"
-        type="range"
-        @input="changeOpacity"
-      ></b-form-input>
       <OverlayPicker
         :analysisName="selected"
         :storageKey="storageKey"
@@ -31,10 +21,14 @@
       <ColorPicker
         v-for="color in colors"
         :key="color.name"
+        :class-opacity="classOpacity(color.name)"
+        :class-weight="classWeight(color.name)"
         :color="color"
         :visible="isClassVisible(color.name)"
         @update:color="updateColor"
         @toggle:class="toggleClass"
+        @update:weight="updateWeight"
+        @update:opacity="updateOpacity"
       />
       <button
         v-if="selected"
@@ -64,6 +58,7 @@ export default {
     ...mapGetters(["storageKey", "selected", "thresh", "maskOpacity"]),
     colors() {
       const c = this.$store.getters.colors(this.selected);
+      if (!c) return [];
       return Object.keys(c).map((key) => ({ name: key, color: c[key] }));
     },
   },
@@ -72,8 +67,13 @@ export default {
       const visible = this.$store.getters.classesVisible(this.selected)[
         className
       ];
-      console.log("visible", visible, className);
       return visible;
+    },
+    classWeight(className) {
+      return this.$store.getters.classesWeights(this.selected)[className];
+    },
+    classOpacity(className) {
+      return this.$store.getters.classesOpacities(this.selected)[className];
     },
     onSelected(value) {
       this.$root.$emit("removeOverlay", this.selected);
@@ -81,16 +81,28 @@ export default {
       this.getAnalysis();
     },
     getAnalysis() {
-      console.log("get an", this.storageKey, this.selected, this.thresh);
+      const weights = this.$store.getters.classesWeights(this.selected);
+      const weightValues = weights ? Object.values(weights) : null;
+
+      console.log(
+        "get an",
+        this.storageKey,
+        this.selected,
+        this.thresh,
+        weightValues
+      );
+      let data = new FormData();
+      if (weightValues) {
+        data.append("weights", JSON.stringify(weightValues));
+      }
+      data.append("threshold", this.thresh);
       this.$http
-        .get(
+        .post(
           `http://127.0.0.1:5000/get_analysis/${this.storageKey}/${this.selected}`,
+          data,
           {
             headers: {
               "Content-Type": "multipart/form-data",
-            },
-            params: {
-              threshold: this.thresh,
             },
           }
         )
@@ -104,10 +116,6 @@ export default {
       this.$root.$emit("removeOverlay", this.selected);
       this.getAnalysis();
     },
-    changeOpacity(value) {
-      this.$store.dispatch("updateOptions", { maskOpacity: value });
-      this.$root.$emit("changeOpacity", this.selected);
-    },
     updateColor(payload) {
       const c = this.$store.getters.colors(this.selected);
       const merged = { ...c, ...payload };
@@ -116,6 +124,25 @@ export default {
         colors: merged,
       });
       this.$root.$emit("changeColor", this.selected, Object.keys(payload)[0]);
+    },
+    updateWeight(payload) {
+      const w = this.$store.getters.classesWeights(this.selected);
+      const merged = { ...w, ...payload };
+      this.$store.dispatch("storeWeights", {
+        id: this.selected,
+        weights: merged,
+      });
+      this.$root.$emit("removeOverlay", this.selected);
+      this.getAnalysis();
+    },
+    updateOpacity(payload) {
+      const o = this.$store.getters.classesOpacities(this.selected);
+      const merged = { ...o, ...payload };
+      this.$store.dispatch("storeOpacities", {
+        id: this.selected,
+        opacities: merged,
+      });
+      this.$root.$emit("changeOpacity", this.selected, Object.keys(payload)[0]);
     },
     resetColors() {
       this.$root.$emit("resetColors", this.selected);

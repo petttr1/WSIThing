@@ -12,6 +12,7 @@ from lib.WSITools.batch_producer import ParametrizedBatchProducer
 from lib.WSITools.quad_bunch import QuadBunch
 
 
+# noinspection PyInterpreter
 class WSIAnalyzer:
     wsi_quad = None
 
@@ -61,9 +62,9 @@ class WSIAnalyzer:
         pass
 
 ########## ANALYZER EXPOSED METHODS ##########
-    def get_analysis_for_expert(self, expert, downscale=16, thresh=0.6):
+    def get_analysis_for_expert(self, expert, downscale=16, thresh=0.6, weights=None):
         # TODO: hard-coded downscale factor, number of classes
-        return self.make_polygons_from_mask(self.wsi_quad.get_mask(downscale, expert, True, False), downscale, thresh, self.wsi_quad.get_class_ordering(expert))
+        return self.make_polygons_from_mask(self.wsi_quad.get_mask(downscale, expert, True, False), downscale, thresh, self.wsi_quad.get_class_ordering(expert), weights)
 
     def get_analysis_for_classes(self, classes):
         analyses = {}
@@ -88,9 +89,15 @@ class WSIAnalyzer:
                             'y': list(int(y * downscale) for y in yy)})
         return res
 
-    def make_polygons_from_mask(self, img, downscale, thresh, classes):
+    def make_polygons_from_mask(self, img, downscale, thresh, classes, weights=None):
         colors = ['red', 'green', 'blue', 'cyan', 'fuchsia', 'aqua', 'yellow']
         polys = []
+        if weights:
+            print('weights', weights)
+            img = img * np.array(weights).astype(np.float32)
+            img_max = np.max(img)
+            img_min = np.min(img)
+            img = (img - img_min) / (img_max - img_min)
         for channel in range(img.shape[-1]):
             im = (255*(img[:, :, channel] > thresh)).astype(np.uint8)
             if np.average(im) == 255 or np.sum(im) == 0:

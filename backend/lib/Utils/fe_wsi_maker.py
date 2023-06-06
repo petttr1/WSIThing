@@ -43,8 +43,8 @@ class FeWSIMaker:
             raise
             return {'status': 'fail', 'message': str(e)}
 
-    def get_analysis(self, name, threshold):
-        return self.analyzer.get_analysis_for_expert(name, thresh=threshold)
+    def get_analysis(self, name, threshold, weights):
+        return self.analyzer.get_analysis_for_expert(name, thresh=threshold, weights=weights)
 
     def get_classes(self, analyzer):
         return self.analyzer.wsi_quad.analyses_classes_ordering[analyzer]
